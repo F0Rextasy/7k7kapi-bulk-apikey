@@ -178,7 +178,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | 创建密钥所在的分组 |
 | `--alt-groups G` | `default` | 回退分组 |
 | `--pool <file>` | `proxies.txt` | 代理列表，每行一个出口 |
-| `--tries N` | `2` | 每个账户在放弃之前尝试的出口数 |
+| `--exits N` | `6` | 每个账户在放弃之前尝试的出口数 |
 | `--timeout MS` | `60000` | 每个请求的超时时间 |
 | `--checkin` | 关闭 | 同时运行每日签到（此处未充值则锁定） |
 | `--verify-only` | 关闭 | 重新测试 `keys.txt` 中的每个密钥 |
@@ -193,7 +193,7 @@ node src/cli.js --help
 
 **可选 —— 但面板很挑剔，所以代理池值得使用。** 一个账户的每个请求都通过**一个固定出口**：发送验证码、注册、登录、创建密钥和门槛都从同一地址发出，因为面板会将待处理的验证码绑定到请求地址，从一个出口请求的验证码在另一个出口注册时会被拒绝（`Verification code is incorrect or has expired`）。
 
-- 使用代理池：`--pool proxies.txt`（或 `7K7KAPI_PROXIES`）；失效的出口会快速失败，下一次尝试会使用下一个出口（`--tries`，默认 2）。
+- 使用代理池：`--pool proxies.txt`（或 `7K7KAPI_PROXIES`）；失效的出口会快速失败，下一次尝试会使用下一个出口（`--exits`，默认 6）。
 - 不使用代理池时，CLI 会打印 `running WITHOUT a proxy (direct)`，工作方式相同。
 - **速率限制是按地址的：** 两个并发账户就已经触发 `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}`（`out/mint-laneA.log`）。`--conc 1` 配合内置的 `--gap 1200` 完成了 10/10；`--conc 2` 丢失了每一个验证码。
 - 保持代理池新鲜：公开候选出口几分钟内就会失效 —— `--screen` 会告诉你哪些仍能访问面板。
@@ -245,7 +245,7 @@ node src/connect-omniroute.js --api-key <48-char key>
 
 * **分组就是全部关键。** 在 `default` 中创建的令牌看起来没问题，然后会返回 `503 No available channel for model deepseek-v4.1-flash` —— 而且关键在于 `/v1/models` 在该密钥上仍然返回 **200**，所以天真的“模型检查”会通过，只有聊天调用才能揭示真相。这正是这里的门槛是补全请求而非列表的原因（`out/mint-2026-10-22.log`）。
 * **发送验证码按地址限速：** `发送过于频繁，请等待 N 秒后再试`（429），N 在 15 到 30 之间。两个并发账户会互相饿死；`--conc 1` 的创建是实测可用的配置。
-* **验证码绑定到请求地址。** 从与请求验证码不同的出口注册，面板会返回 `Verification code is incorrect or has expired`（HTTP 200，`success: false`）—— `--tries` 会从新邮箱重新运行整个账户，而不是重复使用验证码。
+* **验证码绑定到请求地址。** 从与请求验证码不同的出口注册，面板会返回 `Verification code is incorrect or has expired`（HTTP 200，`success: false`）—— `--exits` 会从新邮箱重新运行整个账户，而不是重复使用验证码。
 * **一次性域名会被拒绝。** 在一次性域名上 `POST /api/verification` → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`。CLI 提供的两种通道（temp.tf Microsoft 加号别名、Emailnator gmail）都被接受；共享收件箱也可能返回其他租户的邮件，这就是验证码仅从面板自己的邮件中读取的原因。
 * **签到在付费墙之后**（累计充值满 10 元即可解锁每日签到）—— 这里没有免费的每日补充。
 

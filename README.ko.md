@@ -179,7 +179,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | 키가 생성되는 그룹 |
 | `--alt-groups G` | `default` | 폴백 그룹 |
 | `--pool <file>` | `proxies.txt` | 프록시 목록, 줄당 출구 하나 |
-| `--tries N` | `2` | 포기하기 전 계정당 시도할 출구 수 |
+| `--exits N` | `6` | 포기하기 전 계정당 시도할 출구 수 |
 | `--timeout MS` | `60000` | 요청당 타임아웃 |
 | `--checkin` | 꺼짐 | 일일 출석 체크도 실행(여기서는 충전 없이는 잠김) |
 | `--verify-only` | 꺼짐 | `keys.txt`의 모든 키 재테스트 |
@@ -194,7 +194,7 @@ node src/cli.js --help
 
 **선택 사항 — 하지만 패널이 까다로우므로 풀을 사용할 가치가 있습니다.** 한 계정의 모든 요청은 **하나의 고정된 출구**를 통과합니다: 코드 전송, 등록, 로그인, 키 생성 및 관문이 모두 동일한 주소에서 나갑니다. 패널이 대기 중인 코드를 요청 주소에 묶기 때문에, 한 출구에서 요청한 코드는 다른 출구에서 등록할 때 거부됩니다(`Verification code is incorrect or has expired`).
 
-- 풀이 있는 경우: `--pool proxies.txt`(또는 `7K7KAPI_PROXIES`); 죽은 출구는 빠르게 실패하고 다음 시도가 다음 출구를 사용합니다(`--tries`, 기본값 2).
+- 풀이 있는 경우: `--pool proxies.txt`(또는 `7K7KAPI_PROXIES`); 죽은 출구는 빠르게 실패하고 다음 시도가 다음 출구를 사용합니다(`--exits`, 기본값 6).
 - 풀이 없으면 CLI는 `running WITHOUT a proxy (direct)`를 출력하고 동일하게 작동합니다.
 - **속도 제한은 주소당입니다:** 동시 진행 계정 두 개만으로도 이미 `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}`에 도달합니다(`out/mint-laneA.log`). 내장 `--gap 1200`과 함께 `--conc 1`은 10/10을 완료했습니다; `--conc 2`는 모든 코드를 잃었습니다.
 - 풀을 신선하게 유지하세요: 공개 후보 출구는 몇 분 만에 죽습니다 — `--screen`이 어떤 출구가 여전히 패널에 도달하는지 알려줍니다.
@@ -246,7 +246,7 @@ node src/connect-omniroute.js --api-key <48-char key>
 
 * **그룹이 전부입니다.** `default`에 생성된 토큰은 정상으로 보이다가 `503 No available channel for model deepseek-v4.1-flash`로 응답합니다 — 그리고 결정적으로 `/v1/models`는 해당 키에서 여전히 **200**으로 응답하므로, 순진한 "모델 검사"는 통과하고 채팅 호출만이 진실을 알려줍니다. 이것이 바로 여기서 관문이 목록이 아니라 완성 요청인 이유입니다(`out/mint-2026-10-22.log`).
 * **코드 전송은 주소당 속도 제한이 있습니다:** `发送过于频繁，请等待 N 秒后再试` (429), N은 15에서 30 사이. 동시 진행 계정 두 개는 서로를 굶주리게 합니다; `--conc 1`에서의 생성이 측정된 작동 구성입니다.
-* **코드는 요청 주소에 묶입니다.** 코드를 요청한 출구와 다른 출구에서 등록하면 패널이 `Verification code is incorrect or has expired`로 응답합니다(HTTP 200, `success: false`) — `--tries`는 코드를 재사용하는 대신 새 메일함에서 전체 계정을 다시 실행합니다.
+* **코드는 요청 주소에 묶입니다.** 코드를 요청한 출구와 다른 출구에서 등록하면 패널이 `Verification code is incorrect or has expired`로 응답합니다(HTTP 200, `success: false`) — `--exits`는 코드를 재사용하는 대신 새 메일함에서 전체 계정을 다시 실행합니다.
 * **일회용 도메인은 거부됩니다.** 일회용 도메인에서 `POST /api/verification` → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`. CLI가 제공하는 두 레일(temp.tf Microsoft 플러스 별칭, Emailnator gmail)은 모두 허용됩니다; 공유 받은편지함은 다른 테넌트의 메일을 반환할 수도 있으므로, 코드는 패널 자체의 메시지에서만 읽습니다.
 * **출석 체크는 유료 장벽 뒤에 있습니다**(累计充值满 10 元即可解锁每日签到) — 여기에는 무료 일일 충전이 없습니다.
 

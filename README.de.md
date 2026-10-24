@@ -179,7 +179,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | Gruppe, in der der Schlüssel erstellt wird |
 | `--alt-groups G` | `default` | Fallback-Gruppen |
 | `--pool <file>` | `proxies.txt` | Proxy-Liste, ein Exit pro Zeile |
-| `--tries N` | `2` | pro Konto versuchte Exits, bevor aufgegeben wird |
+| `--exits N` | `6` | pro Konto versuchte Exits, bevor aufgegeben wird |
 | `--timeout MS` | `60000` | Timeout pro Anfrage |
 | `--checkin` | aus | führt zusätzlich den täglichen Check-in aus (hier ohne Aufladung gesperrt) |
 | `--verify-only` | aus | testet jeden Schlüssel in `keys.txt` erneut |
@@ -194,7 +194,7 @@ node src/cli.js --help
 
 **Optional — aber das Panel ist wählerisch, ein Pool lohnt sich also.** Jede Anfrage eines Kontos geht über **einen festgelegten Exit**: Code senden, Registrieren, Anmelden, Schlüssel erstellen und das Gate gehen alle von derselben Adresse aus, weil das Panel den ausstehenden Code an die anfragende Adresse bindet und ein Code, der von einem Exit angefordert wurde, abgelehnt wird, wenn ein anderer sich registriert (`Verification code is incorrect or has expired`).
 
-- Mit einem Pool: `--pool proxies.txt` (oder `7K7KAPI_PROXIES`); ein toter Exit schlägt schnell fehl und der nächste Versuch nimmt den nächsten Exit (`--tries`, Standard 2).
+- Mit einem Pool: `--pool proxies.txt` (oder `7K7KAPI_PROXIES`); ein toter Exit schlägt schnell fehl und der nächste Versuch nimmt den nächsten Exit (`--exits`, Standard 6).
 - Ohne Pool gibt die CLI `running WITHOUT a proxy (direct)` aus und funktioniert genauso.
 - **Das Rate-Limit gilt pro Adresse:** Zwei Konten gleichzeitig in Bearbeitung stoßen bereits auf `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}` (`out/mint-laneA.log`). `--conc 1` mit dem eingebauten `--gap 1200` schloss 10/10 ab; `--conc 2` verlor jeden Code.
 - Halte den Pool frisch: öffentliche Kandidaten-Exits sterben in Minuten — `--screen` sagt dir, welche das Panel noch erreichen.
@@ -246,7 +246,7 @@ Standardwerte: `--omniroute-prefix 7k7kapi`, `--omniroute-name 7k7kapi`, Basis-U
 
 * **Die Gruppe ist das ganze Spiel.** Ein in `default` erstelltes Token sieht gut aus und antwortet dann mit `503 No available channel for model deepseek-v4.1-flash` — und entscheidend ist, dass `/v1/models` bei diesem Schlüssel weiterhin **200** antwortet, sodass eine naive „Models-Prüfung“ besteht und nur der Chat-Aufruf die Wahrheit sagt. Genau deshalb ist das Gate hier eine Completion, kein Listing (`out/mint-2026-10-22.log`).
 * **Send-code ist pro Adresse rate-limitiert:** `发送过于频繁，请等待 N 秒后再试` (429) mit N zwischen 15 und 30. Zwei Konten gleichzeitig in Bearbeitung hungern sich gegenseitig aus; Prägungen mit `--conc 1` sind die gemessene funktionierende Konfiguration.
-* **Ein Code ist an die anfragende Adresse gebunden.** Registriere dich von einem anderen Exit als dem, der den Code angefordert hat, und das Panel antwortet mit `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--tries` führt das gesamte Konto von einer neuen Mailbox aus erneut aus, statt den Code wiederzuverwenden.
+* **Ein Code ist an die anfragende Adresse gebunden.** Registriere dich von einem anderen Exit als dem, der den Code angefordert hat, und das Panel antwortet mit `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--exits` führt das gesamte Konto von einer neuen Mailbox aus erneut aus, statt den Code wiederzuverwenden.
 * **Wegwerf-Domains werden abgelehnt.** `POST /api/verification` bei einer Wegwerf-Domain → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`. Die beiden Schienen, die die CLI mitbringt (temp.tf Microsoft-Plus-Aliase, Emailnator-Gmail), werden beide akzeptiert; ein geteilter Posteingang kann auch die Mail eines anderen Mandanten zurückgeben, weshalb der Code nur aus der eigenen Nachricht des Panels gelesen wird.
 * **Der Check-in liegt hinter einer Bezahlschranke** (累计充值满 10 元即可解锁每日签到) — hier gibt es keine kostenlose tägliche Auffüllung.
 

@@ -179,7 +179,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | groupe dans lequel la clé est créée |
 | `--alt-groups G` | `default` | groupes de repli |
 | `--pool <file>` | `proxies.txt` | liste de proxys, une sortie par ligne |
-| `--tries N` | `2` | sorties essayées par compte avant d'abandonner |
+| `--exits N` | `6` | sorties essayées par compte avant d'abandonner |
 | `--timeout MS` | `60000` | délai par requête |
 | `--checkin` | désactivé | exécute aussi le check-in quotidien (verrouillé ici sans recharge) |
 | `--verify-only` | désactivé | reteste chaque clé dans `keys.txt` |
@@ -194,7 +194,7 @@ node src/cli.js --help
 
 **Facultatif — mais le panneau est pointilleux, donc un pool vaut la peine.** Chaque requête d'un compte passe par **une sortie épinglée** : envoi du code, inscription, connexion, création de clé et barrière partent tous de la même adresse, car le panneau lie le code en attente à l'adresse demandeuse et un code demandé depuis une sortie est refusé quand une autre s'inscrit (`Verification code is incorrect or has expired`).
 
-- Avec un pool : `--pool proxies.txt` (ou `7K7KAPI_PROXIES`) ; une sortie morte échoue vite et l'essai suivant prend la sortie suivante (`--tries`, défaut 2).
+- Avec un pool : `--pool proxies.txt` (ou `7K7KAPI_PROXIES`) ; une sortie morte échoue vite et l'essai suivant prend la sortie suivante (`--exits`, défaut 6).
 - Sans pool, le CLI affiche `running WITHOUT a proxy (direct)` et fonctionne pareil.
 - **La limite de débit est par adresse :** deux comptes en cours atteignent déjà `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}` (`out/mint-laneA.log`). `--conc 1` avec le `--gap 1200` intégré a terminé 10/10 ; `--conc 2` a perdu chaque code.
 - Gardez le pool frais : les sorties candidates publiques meurent en quelques minutes — `--screen` vous dit lesquelles atteignent encore le panneau.
@@ -246,7 +246,7 @@ Défauts : `--omniroute-prefix 7k7kapi`, `--omniroute-name 7k7kapi`, URL de base
 
 * **Le groupe est tout l'enjeu.** Un jeton créé dans `default` semble correct puis répond `503 No available channel for model deepseek-v4.1-flash` — et surtout `/v1/models` répond encore **200** sur cette clé, donc une « vérification des modèles » naïve passe et seul l'appel de chat dit la vérité. C'est exactement pourquoi la barrière ici est une complétion, pas une liste (`out/mint-2026-10-22.log`).
 * **L'envoi du code est limité en débit par adresse :** `发送过于频繁，请等待 N 秒后再试` (429) avec N entre 15 et 30. Deux comptes en cours s'affament mutuellement ; les créations à `--conc 1` sont la configuration de travail mesurée.
-* **Un code est lié à l'adresse demandeuse.** Inscrivez-vous depuis une sortie différente de celle qui a demandé le code et le panneau répond `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--tries` relance tout le compte depuis une nouvelle boîte mail au lieu de réutiliser le code.
+* **Un code est lié à l'adresse demandeuse.** Inscrivez-vous depuis une sortie différente de celle qui a demandé le code et le panneau répond `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--exits` relance tout le compte depuis une nouvelle boîte mail au lieu de réutiliser le code.
 * **Les domaines jetables sont refusés.** `POST /api/verification` sur un domaine jetable → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`. Les deux voies livrées par le CLI (alias plus Microsoft temp.tf, gmail Emailnator) sont toutes deux acceptées ; une boîte partagée peut aussi renvoyer le courrier d'un autre locataire, c'est pourquoi le code est lu uniquement depuis le message du panneau lui-même.
 * **Le check-in est derrière un paywall** (累计充值满 10 元即可解锁每日签到) — il n'y a pas de recharge quotidienne gratuite ici.
 

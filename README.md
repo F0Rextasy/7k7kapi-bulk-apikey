@@ -178,7 +178,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | group the key is created in |
 | `--alt-groups G` | `default` | fallback groups |
 | `--pool <file>` | `proxies.txt` | proxy list, one exit per line |
-| `--tries N` | `2` | exits tried per account before giving up |
+| `--exits N` | `6` | exits tried per account before giving up |
 | `--timeout MS` | `60000` | per-request timeout |
 | `--checkin` | off | also run the daily check-in (locked here without a top-up) |
 | `--verify-only` | off | re-test every key in `keys.txt` |
@@ -193,7 +193,7 @@ node src/cli.js --help
 
 **Optional — but the panel is fussy, so a pool is worth it.** Every request of one account goes through **one pinned exit**: send-code, register, login, key create and the gate all leave from the same address, because the panel binds the pending code to the requesting address and a code asked for from one exit is refused when another one registers (`Verification code is incorrect or has expired`).
 
-- With a pool: `--pool proxies.txt` (or `7K7KAPI_PROXIES`); a dead exit fails fast and the next try takes the next exit (`--tries`, default 2).
+- With a pool: `--pool proxies.txt` (or `7K7KAPI_PROXIES`); a dead exit fails fast and the next try takes the next exit (`--exits`, default 6).
 - Without a pool the CLI prints `running WITHOUT a proxy (direct)` and works the same.
 - **Rate limit is per address:** two accounts in flight already hit `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}` (`out/mint-laneA.log`). `--conc 1` with the built-in `--gap 1200` finished 10/10; `--conc 2` lost every code.
 - Keep the pool fresh: public candidate exits die in minutes — `--screen` tells you which ones still reach the panel.
@@ -245,7 +245,7 @@ Defaults: `--omniroute-prefix 7k7kapi`, `--omniroute-name 7k7kapi`, base URL `ht
 
 * **The group is the whole game.** A token created in `default` looks fine and then answers `503 No available channel for model deepseek-v4.1-flash` — and crucially `/v1/models` still answers **200** on that key, so a naive "models check" passes and only the chat call tells the truth. That is exactly why the gate here is a completion, not a listing (`out/mint-2026-10-22.log`).
 * **Send-code is rate-limited per address:** `发送过于频繁，请等待 N 秒后再试` (429) with N between 15 and 30. Two accounts in flight starve each other; mints at `--conc 1` are the measured working configuration.
-* **A code is bound to the requesting address.** Register from a different exit than the one that asked for the code and the panel answers `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--tries` re-runs the whole account from a new mailbox instead of reusing the code.
+* **A code is bound to the requesting address.** Register from a different exit than the one that asked for the code and the panel answers `Verification code is incorrect or has expired` (HTTP 200, `success: false`) — `--exits` re-runs the whole account from a new mailbox instead of reusing the code.
 * **Disposable domains are refused.** `POST /api/verification` on a throwaway domain → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`. The two rails the CLI ships (temp.tf Microsoft plus-aliases, Emailnator gmail) are both accepted; a shared inbox can also hand back another tenant's mail, which is why the code is read only from the panel's own message.
 * **The check-in is behind a paywall** (累计充值满 10 元即可解锁每日签到) — there is no free daily refill here.
 

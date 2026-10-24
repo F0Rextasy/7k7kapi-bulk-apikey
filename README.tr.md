@@ -179,7 +179,7 @@ node src/cli.js --help
 | `--group <name>` | `DeepSeek（oai接口）` | anahtarın oluşturulduğu grup |
 | `--alt-groups G` | `default` | yedek gruplar |
 | `--pool <file>` | `proxies.txt` | proxy listesi, satır başına bir çıkış |
-| `--tries N` | `2` | vazgeçmeden önce hesap başına denenen çıkış sayısı |
+| `--exits N` | `6` | vazgeçmeden önce hesap başına denenen çıkış sayısı |
 | `--timeout MS` | `60000` | istek başına zaman aşımı |
 | `--checkin` | kapalı | günlük girişi de çalıştır (burada yükleme olmadan kilitli) |
 | `--verify-only` | kapalı | `keys.txt` içindeki her anahtarı yeniden test et |
@@ -194,7 +194,7 @@ node src/cli.js --help
 
 **İsteğe bağlı — ama panel titizdir, bu yüzden bir havuz buna değer.** Bir hesabın her isteği **tek bir sabitlenmiş çıkış** üzerinden gider: kod gönderme, kayıt, giriş, anahtar oluşturma ve kapı hepsi aynı adresten ayrılır, çünkü panel bekleyen kodu istekte bulunan adrese bağlar ve bir çıkıştan istenen kod, başka bir çıkış kaydolmaya çalıştığında reddedilir (`Verification code is incorrect or has expired`).
 
-- Bir havuzla: `--pool proxies.txt` (veya `7K7KAPI_PROXIES`); ölü bir çıkış hızlı başarısız olur ve sonraki deneme bir sonraki çıkışı alır (`--tries`, varsayılan 2).
+- Bir havuzla: `--pool proxies.txt` (veya `7K7KAPI_PROXIES`); ölü bir çıkış hızlı başarısız olur ve sonraki deneme bir sonraki çıkışı alır (`--exits`, varsayılan 6).
 - Havuz olmadan CLI `running WITHOUT a proxy (direct)` yazdırır ve aynı şekilde çalışır.
 - **Hız sınırı adres başınadır:** aynı anda iki hesap zaten `sendCode HTTP 429 {"message":"发送过于频繁，请等待 23 秒后再试"}` ile karşılaşır (`out/mint-laneA.log`). Yerleşik `--gap 1200` ile `--conc 1` 10/10 tamamladı; `--conc 2` her kodu kaybetti.
 - Havuzu taze tutun: genel aday çıkışlar dakikalar içinde ölür — `--screen` hangilerinin hâlâ panele ulaştığını söyler.
@@ -246,7 +246,7 @@ Varsayılanlar: `--omniroute-prefix 7k7kapi`, `--omniroute-name 7k7kapi`, temel 
 
 * **Grup her şeydir.** `default` içinde oluşturulan bir token iyi görünür ve ardından `503 No available channel for model deepseek-v4.1-flash` yanıtlar — ve daha da önemlisi `/v1/models` o anahtarda hâlâ **200** yanıtlar, bu yüzden naif bir "modeller kontrolü" geçer ve yalnızca sohbet çağrısı gerçeği söyler. Buradaki kapının bir liste değil, bir tamamlama olmasının nedeni tam olarak budur (`out/mint-2026-10-22.log`).
 * **Kod gönderme adres başına hız sınırlıdır:** `发送过于频繁，请等待 N 秒后再试` (429), N 15 ile 30 arasında. Aynı anda iki hesap birbirini aç bırakır; `--conc 1` ile oluşturma ölçülen çalışan yapılandırmadır.
-* **Bir kod istekte bulunan adrese bağlıdır.** Kodu isteyenden farklı bir çıkıştan kaydolun ve panel `Verification code is incorrect or has expired` yanıtlar (HTTP 200, `success: false`) — `--tries`, kodu yeniden kullanmak yerine tüm hesabı yeni bir posta kutusundan yeniden çalıştırır.
+* **Bir kod istekte bulunan adrese bağlıdır.** Kodu isteyenden farklı bir çıkıştan kaydolun ve panel `Verification code is incorrect or has expired` yanıtlar (HTTP 200, `success: false`) — `--exits`, kodu yeniden kullanmak yerine tüm hesabı yeni bir posta kutusundan yeniden çalıştırır.
 * **Tek kullanımlık alan adları reddedilir.** Tek kullanımlık bir alan adında `POST /api/verification` → **403** `注册仅支持主流常用邮箱（QQ、网易、Gmail、Outlook 等）及高校教育邮箱`. CLI'nin sunduğu iki hat (temp.tf Microsoft plus-takma adları, Emailnator gmail) de kabul edilir; paylaşılan bir gelen kutusu başka bir kiracının postasını da geri verebilir, bu yüzden kod yalnızca panelin kendi mesajından okunur.
 * **Giriş bir ödeme duvarının arkasında** (累计充值满 10 元即可解锁每日签到) — burada ücretsiz günlük yenileme yoktur.
 
